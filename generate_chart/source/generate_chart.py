@@ -20,4 +20,4 @@ plt.ylabel('Time in milliseconds (less is better)')
 
 # TODO: Show number above bars
 
-plt.savefig('generated.png')
+plt.savefig('chart.png')

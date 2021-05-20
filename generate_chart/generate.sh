@@ -1,4 +1,7 @@
 #!/bin/bash
-touch generated.png
+touch chart.png
 
-docker run --rm -it -v $(pwd)/generated.png:/source/generated.png rust-driver-benchmarks-generate-chart python3 generate_chart.py
+docker run --rm -it \
+    -v $(pwd)/config.py:/source/config.py:ro \
+    -v $(pwd)/chart.png:/source/chart.png \
+    rust-driver-benchmarks-generate-chart python3 generate_chart.py

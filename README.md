@@ -30,4 +30,4 @@ Chart generator is also in a docker image for convenience
 * Build the docker image: `sudo ./build.sh`
 * Enter benchmark results in `config.py`
 * Generate the chart: `sudo ./generate.sh`
-* Generated chart will be in `generated.png`
+* Generated chart will be in `chart.png`
