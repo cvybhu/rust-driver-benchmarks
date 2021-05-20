@@ -1,0 +1,12 @@
+[package]
+name = "inserts"
+version = "0.1.0"
+authors = []
+edition = "2018"
+
+[dependencies]
+cdrs-tokio = "4.0.0"
+tokio = { version = "1", features = ["net", "io-util", "rt", "sync", "macros", "rt-multi-thread"] }
+
+[profile.release]
+lto = true
