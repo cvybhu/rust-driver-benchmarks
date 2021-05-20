@@ -12,8 +12,8 @@ Benchmarks for Scylla Rust Driver
 
 
 ## How to run a benchmark
-Each benchmark is inside a Docker image
-Build the image and run the benchmark
+Each benchmark is inside a Docker image  
+Build the image and run the benchmark  
 Most commands require `sudo` or being in the docker group
 
 For example to run the `inserts` benchmark using `scylla-rust-driver`
