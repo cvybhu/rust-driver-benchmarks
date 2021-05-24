@@ -3,7 +3,7 @@ benchmark_title = "1 000 000 inserts, concurrency = 256"
 
 # Benchmark results in ms
 benchmark_results = {
-    'rust-driver': 5657,
+    'scylla-rust-driver': 5657,
     'cpp-driver': 7016,
     'cdrs-tokio': 16962
 }
