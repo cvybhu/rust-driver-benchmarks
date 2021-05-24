@@ -102,7 +102,7 @@ struct Config {
 
         switch (workload) {
         case Workload::Inserts:
-            std::cout << "Mnserts\n";
+            std::cout << "Inserts\n";
             break;
 
         case Workload::Selects:
