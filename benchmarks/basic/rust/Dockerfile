@@ -10,3 +10,7 @@ WORKDIR /source
 
 # Compile the code
 RUN cargo build --release
+RUN cp target/release/basic .
+
+# Cleanup to reduce image size
+RUN cargo clean

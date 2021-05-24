@@ -23,7 +23,7 @@ struct Config {
 
     Config(int argc, const char *argv[]) {
         node_address = "scylla";
-        workload = Workload::Mixed;
+        workload = Workload::Inserts;
         tasks = 1000 * 1000;
         concurrency = 256;
         no_prepare = false;
