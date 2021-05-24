@@ -2,14 +2,13 @@
 Benchmarks for Scylla Rust Driver
 
 ## Benchmarks
-* Inserts - performs 10 000 integer inserts (Outdated, will replace with basic soon)
-    * scylla-rust-driver: 46ms
-    * cpp-driver: 159ms
-    * cdrs-tokio: 708ms
-
-![](images/inserts.png)
-
-
+* Basic - performs basic operations (inserts/selects), max `concurrency` active requests at once
+    * 1 000 000 inserts, concurrency = 256
+        * scylla-rust-driver: 5657ms
+        * cpp-driver: 7016ms
+        * cdrs-tokio: 16962ms
+    
+    ![](images/basic_insert_1e6_256.png)
 
 ## How to run a benchmark
 Each benchmark is inside a Docker image  
