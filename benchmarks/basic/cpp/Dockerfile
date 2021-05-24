@@ -15,4 +15,4 @@ COPY source /source
 WORKDIR /source
 
 # Compile the code
-RUN g++ inserts.cpp -o inserts -std=c++11 -lcassandra -O3 -flto -Wall -Wshadow
+RUN g++ main.cpp -o basic -std=c++11 -lcassandra -O3 -flto -Wall -Wshadow

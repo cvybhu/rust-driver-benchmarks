@@ -10,6 +10,8 @@ use cdrs_tokio::retry::DefaultRetryPolicy;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    panic!("TODO TODO TODO TODO TODO");
+
     // Number of inserts to be performed
     let num_of_inserts: i32 = 10_000;
 

@@ -19,6 +19,7 @@ struct Config {
     workload: Workload,
     tasks: i64,
     concurrency: i64,
+    no_prepare: bool,
 }
 
 #[tokio::main]
@@ -39,7 +40,9 @@ async fn main() -> Result<()> {
 
     let session = Arc::new(session);
 
-    prepare_keyspace_and_table(&session).await?;
+    if !config.no_prepare {
+        prepare_keyspace_and_table(&session).await?;
+    }
 
     let insert_stmt = "INSERT INTO benchks.benchtab (pk, v1, v2) VALUES(?, ?, ?)";
     let select_stmt = "SELECT v1, v2 FROM benchks.benchtab WHERE pk = ?";
@@ -47,7 +50,7 @@ async fn main() -> Result<()> {
     let prepared_insert = Arc::new(session.prepare(insert_stmt).await?);
     let prepared_select = Arc::new(session.prepare(select_stmt).await?);
 
-    if config.workload == Workload::Selects {
+    if config.workload == Workload::Selects && !config.no_prepare {
         prepare_selects_benchmark(&session, &prepared_insert, &config).await?;
     }
 
@@ -114,7 +117,6 @@ async fn main() -> Result<()> {
         concurrency_semaphore.acquire().await?.forget();
     }
 
-
     let bench_time = start_time.elapsed();
     println!("Finished\n\nBenchmark time: {} ms", bench_time.as_millis());
 
@@ -149,7 +151,6 @@ async fn prepare_selects_benchmark(
     prepared_insert: &Arc<PreparedStatement>,
     config: &Config,
 ) -> Result<()> {
-
     let concurrency_semaphore = Arc::new(Semaphore::new(config.concurrency.try_into().unwrap()));
 
     let mut i: i64 = 0;
@@ -158,7 +159,6 @@ async fn prepare_selects_benchmark(
     let mut last_progress_report_time = std::time::Instant::now();
 
     println!("Preparing a selects benchmark (inserting values)...");
-
 
     while i < config.tasks {
         if last_progress_report_time.elapsed() > std::time::Duration::from_secs(1) {
@@ -177,10 +177,10 @@ async fn prepare_selects_benchmark(
 
         tokio::task::spawn(async move {
             for j in begin..end {
-                    session
-                        .execute(&prepared_insert, (j, 2 * j, 3 * j))
-                        .await
-                        .unwrap();
+                session
+                    .execute(&prepared_insert, (j, 2 * j, 3 * j))
+                    .await
+                    .unwrap();
             }
 
             std::mem::drop(concurrency_permit);
@@ -225,15 +225,21 @@ fn read_config() -> Result<Option<Config>> {
         "CONCURRENCY",
     );
 
+    opts.optflag(
+        "n",
+        "no-prepare",
+        "Don't crate tables and insert into them before the benchmark",
+    );
+
     let args: Vec<String> = std::env::args().collect();
     let parsed = opts.parse(&args[1..])?;
 
-    if parsed.opt_present("h") {
+    if parsed.opt_present("help") {
         print_usage(&opts);
         return Ok(None);
     }
 
-    let address: String = parsed.opt_get_default("address", "127.0.0.1:9042".to_string())?;
+    let address: String = parsed.opt_get_default("address", "scylla:9042".to_string())?;
 
     let workload_str: String = parsed.opt_get_default("workload", "mixed".to_string())?;
     let workload: Workload = match workload_str.as_str() {
@@ -248,14 +254,17 @@ fn read_config() -> Result<Option<Config>> {
         }
     };
 
-    let mut tasks: i64 = parsed.opt_get_default("tasks", 1_000_000)?;
+    let tasks: i64 = parsed.opt_get_default("tasks", 1_000_000)?;
     let concurrency: i64 = parsed.opt_get_default("concurrency", 256)?;
+
+    let no_prepare: bool = parsed.opt_present("no-prepare");
 
     Ok(Some(Config {
         node_address: address,
         workload,
         tasks,
         concurrency,
+        no_prepare,
     }))
 }
 

@@ -1,5 +1,5 @@
 [package]
-name = "inserts"
+name = "basic"
 version = "0.1.0"
 authors = []
 edition = "2018"
@@ -7,6 +7,8 @@ edition = "2018"
 [dependencies]
 scylla = "0.1.0"
 tokio = { version = "1.1.0", features = ["full"] }
+getopts = "0.2.12"
+anyhow = "1.0.40"
 
 [profile.release]
 lto = true

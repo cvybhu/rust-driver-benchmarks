@@ -2,7 +2,7 @@
 Benchmarks for Scylla Rust Driver
 
 ## Benchmarks
-* Inserts - performs 10 000 integer inserts
+* Inserts - performs 10 000 integer inserts (Outdated, will replace with basic soon)
     * scylla-rust-driver: 46ms
     * cpp-driver: 159ms
     * cdrs-tokio: 708ms
@@ -16,9 +16,9 @@ Each benchmark is inside a Docker image
 Build the image and run the benchmark  
 Most commands require `sudo` or being in the docker group
 
-For example to run the `inserts` benchmark using `scylla-rust-driver`
+For example to run the `basic` benchmark using `scylla-rust-driver`
 * Start a local scylla instance: `sudo ./scylla.sh`
-* Enter benchmark directory: `cd benchmarks/inserts/rust`
+* Enter benchmark directory: `cd benchmarks/basic/rust`
 * Build the benchmark: `sudo ./build.sh`
 * Wait until scylla is ready (Should say something like `listening on 172.17.0.3`)
 * Run the benchmark: `sudo ./run.sh`
