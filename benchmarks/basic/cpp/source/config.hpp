@@ -29,12 +29,6 @@ struct Config {
         no_prepare = false;
 
         for (int a = 1; a < argc;) {
-            // --help
-            if (strcmp(argv[a], "-h") == 0 || strcmp(argv[a], "--help") == 0) {
-                print_usage();
-                std::exit(0);
-            }
-
             // --no-prepare
             if (strcmp(argv[a], "-n") == 0 || strcmp(argv[a], "--no-prepare") == 0) {
                 no_prepare = true;
@@ -91,7 +85,7 @@ struct Config {
                 continue;
             }
 
-            fprintf(stderr, "Unkown argument: %s, see --help for usage\n", argv[a]);
+            fprintf(stderr, "Unkown argument: %s\n", argv[a]);
             std::exit(1);
         }
 
@@ -128,7 +122,5 @@ struct Config {
         std::cout << std::endl;
     }
 };
-
-void print_usage() {}
 
 #endif
