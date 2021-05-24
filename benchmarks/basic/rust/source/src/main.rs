@@ -19,6 +19,7 @@ struct Config {
     workload: Workload,
     tasks: i64,
     concurrency: i64,
+    batch_size: i64,
     no_prepare: bool,
 }
 
@@ -55,9 +56,7 @@ async fn main() -> Result<()> {
     }
 
     let concurrency_semaphore = Arc::new(Semaphore::new(config.concurrency.try_into().unwrap()));
-
     let mut i: i64 = 0;
-    let batch_size = 256;
 
     let mut last_progress_report_time = std::time::Instant::now();
 
@@ -80,7 +79,7 @@ async fn main() -> Result<()> {
         let concurrency_permit = concurrency_semaphore.clone().acquire_owned().await;
 
         let begin: i64 = i;
-        let end: i64 = std::cmp::min(begin + batch_size, config.tasks);
+        let end: i64 = std::cmp::min(begin + config.batch_size, config.tasks);
 
         tokio::task::spawn(async move {
             for j in begin..end {
@@ -110,7 +109,7 @@ async fn main() -> Result<()> {
             std::mem::drop(concurrency_permit);
         });
 
-        i += batch_size;
+        i += config.batch_size;
     }
 
     for _ in 0..config.concurrency {
@@ -152,9 +151,7 @@ async fn prepare_selects_benchmark(
     config: &Config,
 ) -> Result<()> {
     let concurrency_semaphore = Arc::new(Semaphore::new(config.concurrency.try_into().unwrap()));
-
     let mut i: i64 = 0;
-    let batch_size = 256;
 
     let mut last_progress_report_time = std::time::Instant::now();
 
@@ -173,7 +170,7 @@ async fn prepare_selects_benchmark(
         let concurrency_permit = concurrency_semaphore.clone().acquire_owned().await;
 
         let begin: i64 = i;
-        let end: i64 = begin + batch_size;
+        let end: i64 = begin + config.batch_size;
 
         tokio::task::spawn(async move {
             for j in begin..end {
@@ -186,7 +183,7 @@ async fn prepare_selects_benchmark(
             std::mem::drop(concurrency_permit);
         });
 
-        i += batch_size;
+        i += config.batch_size;
     }
 
     for _ in 0..config.concurrency {
@@ -259,11 +256,18 @@ fn read_config() -> Result<Option<Config>> {
 
     let no_prepare: bool = parsed.opt_present("no-prepare");
 
+    let mut batch_size = 256;
+
+    if tasks/batch_size < concurrency {
+        batch_size = std::cmp::max(1, tasks / concurrency);
+    }
+
     Ok(Some(Config {
         node_address: address,
         workload,
         tasks,
         concurrency,
+        batch_size,
         no_prepare,
     }))
 }

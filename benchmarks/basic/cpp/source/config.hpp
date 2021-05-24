@@ -18,6 +18,7 @@ struct Config {
     Workload workload;
     int64_t tasks;
     int64_t concurrency;
+    int64_t batch_size;
     bool no_prepare;
 
     Config(int argc, const char *argv[]) {
@@ -92,6 +93,12 @@ struct Config {
 
             fprintf(stderr, "Unkown argument: %s, see --help for usage\n", argv[a]);
             std::exit(1);
+        }
+
+        batch_size = 256;
+
+        if (tasks/batch_size < concurrency) {
+            batch_size = std::max((int64_t)1, tasks / concurrency);
         }
     }
 

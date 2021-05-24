@@ -18,7 +18,6 @@ const CassPrepared *prepared_select;
 
 std::atomic<int64_t> next_batch_start;
 Semaphore *finished_semaphore;
-const int64_t BATCH_SIZE = 256;
 
 void assert_future_ok(CassFuture *future, const char *message) {
     if (cass_future_error_code(future) == CASS_OK) {
@@ -148,7 +147,7 @@ void select_callback(CassFuture *select_future, void *data) {
 void run_concurrent_task(CallbackData *callback_data) {
     // If current batch has finished we need to acquire a new one
     if (callback_data->cur_pk >= callback_data->end_pk) {
-        int64_t new_batch_start = next_batch_start.fetch_add(BATCH_SIZE);
+        int64_t new_batch_start = next_batch_start.fetch_add(config->batch_size);
 
         if (new_batch_start >= config->tasks) {
             // No more work to do
@@ -157,7 +156,7 @@ void run_concurrent_task(CallbackData *callback_data) {
         }
 
         callback_data->cur_pk = new_batch_start;
-        callback_data->end_pk = std::min(new_batch_start + BATCH_SIZE, config->tasks);
+        callback_data->end_pk = std::min(new_batch_start + config->batch_size, config->tasks);
     }
 
     if (config->workload == Workload::Inserts || config->workload == Workload::Mixed) {
