@@ -127,7 +127,10 @@ func prepareSelectsBenchmark(session *gocql.Session, config Config) {
 				curBatchEnd := min(curBatchStart+config.batchSize, config.tasks)
 
 				for pk := curBatchStart; pk < curBatchEnd; pk++ {
-					insertQ.Bind(pk, 2*pk, 3*pk).Exec()
+					err := insertQ.Bind(pk, 2*pk, 3*pk).Exec()
+					if err != nil {
+						panic(err)
+					}
 				}
 			}
 		}()
