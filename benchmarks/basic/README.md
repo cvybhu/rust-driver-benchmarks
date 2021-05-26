@@ -14,7 +14,7 @@ while `cpp-driver` takes just the ip address and assumes the port is `9042`
     * `mixed` - First insert a new row and then select it
 
     (default: mixed)
-* `-t`, `--tasks` - Total number of tasks to perform (in case of `mixed` insert and select is a single task)  
+* `-t`, `--tasks` - Total number of tasks to perform (in case of `mixed` insert + select is a single task)  
 (default: 1 000 000)
 * `-c`, `--concurrency` - Maximum number of requests performed at once  
 (default: 256)

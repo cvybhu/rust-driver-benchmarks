@@ -38,7 +38,7 @@ impl Config {
             "WORKLOAD",
         );
         opts.optopt("t", "tasks", "Total number of tasks (requests) to perform the during benchmark
-                                In case of mixed workload there will be tasks/2 inserts and tasks/2 selects
+                                In case of mixed workload there will be tasks inserts and tasks selects
                                 (default: 1 000 000)", "TASKS");
         opts.optopt(
             "c",
