@@ -23,3 +23,5 @@ Normally when the `selects` workload is used the driver will crate a keyspace, t
 When this option is disabled the benchmark assumes this has already been done. This can be achieved by first running
 the driver with `inserts` workload.  
 (Not enabled by default)
+
+Abbreviated versions of command line arguments do not work with `gocql` benchmark.
