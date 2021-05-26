@@ -4,9 +4,10 @@ Benchmarks for Scylla Rust Driver
 ## Benchmarks
 * Basic - performs basic operations (inserts/selects), max `concurrency` active requests at once
     * 1 000 000 inserts, concurrency = 256
-        * `scylla-rust-driver`: 5657ms
-        * `cpp-driver`: 7016ms
-        * `cdrs-tokio`: 16962ms
+        * `scylla-rust-driver`: 4330ms
+        * `cpp-driver`: 4645ms
+        * `cdrs-tokio`: 17098ms
+        * `gocql`: 12548ms
     
     ![](images/basic_insert_1e6_256.png)
 
