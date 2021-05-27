@@ -1,10 +1,10 @@
 # Title displayed at the top of the generated chart
-benchmark_title = "1 000 000 inserts, concurrency = 256"
+benchmark_title = "1 000 000 inserts, concurrency = 1024"
 
 # Benchmark results in ms
 benchmark_results = {
-    'scylla-rust-driver': 4330,
-    'cpp-driver': 4645,
-    'cdrs-tokio': 17098,
-    'gocql': 12548
+    'scylla-rust-driver': 3734,
+    'cpp-driver': 5510,
+    'cdrs-tokio': 17840,
+    'gocql': 14802
 }

@@ -45,7 +45,7 @@ func readConfig() Config {
 	flag.Int64Var(
 		&config.cuncurrency,
 		"cuncurrency",
-		256,
+		1024,
 		"Maximum number of requests performed at once",
 	)
 

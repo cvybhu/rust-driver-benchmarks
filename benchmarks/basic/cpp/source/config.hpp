@@ -25,7 +25,7 @@ struct Config {
         node_address = "scylla";
         workload = Workload::Inserts;
         tasks = 1000 * 1000;
-        concurrency = 256;
+        concurrency = 1024;
         no_prepare = false;
 
         for (int a = 1; a < argc;) {

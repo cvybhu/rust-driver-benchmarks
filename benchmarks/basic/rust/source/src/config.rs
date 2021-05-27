@@ -44,7 +44,7 @@ impl Config {
             "c",
             "concurrency",
             "Maximum number of requests performed at once
-            (default: 256)",
+            (default: 1024)",
             "CONCURRENCY",
         );
 
@@ -78,7 +78,7 @@ impl Config {
         };
 
         let tasks: i64 = parsed.opt_get_default("tasks", 1_000_000)?;
-        let concurrency: i64 = parsed.opt_get_default("concurrency", 256)?;
+        let concurrency: i64 = parsed.opt_get_default("concurrency", 1024)?;
 
         let no_prepare: bool = parsed.opt_present("no-prepare");
 
