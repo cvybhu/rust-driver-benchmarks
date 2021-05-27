@@ -51,7 +51,7 @@ impl Config {
         opts.optflag(
             "n",
             "no-prepare",
-            "Don't crate tables and insert into them before the benchmark",
+            "Don't create tables and insert into them before the benchmark",
         );
 
         let args: Vec<String> = std::env::args().collect();

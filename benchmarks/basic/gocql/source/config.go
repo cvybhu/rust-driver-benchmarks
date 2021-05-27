@@ -14,7 +14,7 @@ type Config struct {
 	nodeAddress string
 	workload    Workload
 	tasks       int64
-	concurency  int64
+	cuncurrency  int64
 	batchSize   int64
 	noPrepare   bool
 }
@@ -43,8 +43,8 @@ func readConfig() Config {
 	)
 
 	flag.Int64Var(
-		&config.concurency,
-		"concurency",
+		&config.cuncurrency,
+		"cuncurrency",
 		256,
 		"Maximum number of requests performed at once",
 	)
@@ -53,7 +53,7 @@ func readConfig() Config {
 		&config.noPrepare,
 		"no-prepare",
 		false,
-		"Don't crate tables and insert into them before the benchmark",
+		"Don't create tables and insert into them before the benchmark",
 	)
 
 	flag.Parse()
@@ -79,8 +79,8 @@ func readConfig() Config {
 		return b
 	}
 
-	if config.tasks/config.batchSize < config.concurency {
-		config.batchSize = max(1, config.tasks/config.concurency)
+	if config.tasks/config.batchSize < config.cuncurrency {
+		config.batchSize = max(1, config.tasks/config.cuncurrency)
 	}
 
 	return config
