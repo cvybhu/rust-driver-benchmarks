@@ -109,7 +109,8 @@ async fn prepare_keyspace_and_table(session: &Session) -> Result<()> {
         .query("DROP KEYSPACE IF EXISTS benchks", &[])
         .await?;
 
-    session.await_schema_agreement().await?;
+    //session.await_schema_agreement().await?; - await_schema_agreement seems buggy
+    tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
 
     session
         .query(
@@ -119,7 +120,8 @@ async fn prepare_keyspace_and_table(session: &Session) -> Result<()> {
         )
         .await?;
 
-    session.await_schema_agreement().await?;
+    //session.await_schema_agreement().await?;
+    tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
 
     session
         .query(
@@ -128,7 +130,8 @@ async fn prepare_keyspace_and_table(session: &Session) -> Result<()> {
         )
         .await?;
 
-    session.await_schema_agreement().await?;
+    //session.await_schema_agreement().await?;
+    tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
 
     Ok(())
 }
