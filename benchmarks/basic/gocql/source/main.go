@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -87,27 +88,31 @@ func main() {
 	fmt.Printf("Finished\nBenchmark time: %d ms\n", benchTime.Milliseconds())
 }
 
+func awaitSchemaAgreement(session *gocql.Session) {
+	err := session.AwaitSchemaAgreement(context.Background())
+	if err != nil {
+		panic(err)
+	}
+}
+
 func prepareKeyspaceAndTable(session *gocql.Session) {
 	err := session.Query("DROP KEYSPACE IF EXISTS benchks").Exec()
 	if err != nil {
 		panic(err)
 	}
-
-	time.Sleep(4 * time.Second); // Await schema agreement
+	awaitSchemaAgreement(session)
 
 	err = session.Query("CREATE KEYSPACE IF NOT EXISTS benchks WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1}").Exec()
 	if err != nil {
 		panic(err)
 	}
-
-	time.Sleep(4 * time.Second);
+	awaitSchemaAgreement(session)
 
 	err = session.Query("CREATE TABLE IF NOT EXISTS benchks.benchtab (pk bigint PRIMARY KEY, v1 bigint, v2 bigint)").Exec()
 	if err != nil {
 		panic(err)
 	}
-
-	time.Sleep(4 * time.Second);
+	awaitSchemaAgreement(session)
 }
 
 func prepareSelectsBenchmark(session *gocql.Session, config Config) {
