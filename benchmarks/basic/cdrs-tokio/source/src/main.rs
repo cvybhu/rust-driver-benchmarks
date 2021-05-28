@@ -102,7 +102,7 @@ async fn main() -> Result<()> {
                             .unwrap();
                         
                         let v1: i64 = first_row.get_by_index(0).unwrap().unwrap();
-                        let v2: i64 = first_row.get_by_index(0).unwrap().unwrap();
+                        let v2: i64 = first_row.get_by_index(1).unwrap().unwrap();
                         
                         assert_eq!((v1, v2), (2 * pk, 3 * pk));
                     }
