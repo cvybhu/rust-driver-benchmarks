@@ -124,6 +124,8 @@ async fn main() -> Result<()> {
 async fn prepare_keyspace_and_table(session: &Session) -> Result<()> {
     session.query("DROP KEYSPACE IF EXISTS benchks").await?;
 
+    tokio::time::sleep(tokio::time::Duration::from_secs(4)).await; // Await schema agreement
+
     session
         .query(
             "CREATE KEYSPACE IF NOT EXISTS benchks WITH REPLICATION = \
@@ -131,11 +133,15 @@ async fn prepare_keyspace_and_table(session: &Session) -> Result<()> {
         )
         .await?;
 
+    tokio::time::sleep(tokio::time::Duration::from_secs(4)).await;
+
     session
         .query(
             "CREATE TABLE IF NOT EXISTS benchks.benchtab (pk bigint PRIMARY KEY, v1 bigint, v2 bigint)"
         )
         .await?;
+    
+    tokio::time::sleep(tokio::time::Duration::from_secs(4)).await;
 
     Ok(())
 }

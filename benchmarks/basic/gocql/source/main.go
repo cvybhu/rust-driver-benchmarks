@@ -93,15 +93,21 @@ func prepareKeyspaceAndTable(session *gocql.Session) {
 		panic(err)
 	}
 
+	time.Sleep(4 * time.Second); // Await schema agreement
+
 	err = session.Query("CREATE KEYSPACE IF NOT EXISTS benchks WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1}").Exec()
 	if err != nil {
 		panic(err)
 	}
 
+	time.Sleep(4 * time.Second);
+
 	err = session.Query("CREATE TABLE IF NOT EXISTS benchks.benchtab (pk bigint PRIMARY KEY, v1 bigint, v2 bigint)").Exec()
 	if err != nil {
 		panic(err)
 	}
+
+	time.Sleep(4 * time.Second);
 }
 
 func prepareSelectsBenchmark(session *gocql.Session, config Config) {

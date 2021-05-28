@@ -1,6 +1,7 @@
 #include <atomic>
 #include <cassandra.h>
 #include <chrono>
+#include <thread>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
@@ -186,6 +187,7 @@ void run_concurrent_task(CallbackData *callback_data) {
     }
 }
 
+void prepare_keyspace_and_table();
 void prepare_selects_benchmark();
 
 int main(int argc, const char *argv[]) {
@@ -203,13 +205,7 @@ int main(int argc, const char *argv[]) {
 
     // Prepare before the benchmark
     if (!config->no_prepare) {
-        run_simple_query("DROP KEYSPACE IF EXISTS benchks");
-
-        run_simple_query("CREATE KEYSPACE IF NOT EXISTS benchks WITH REPLICATION = {'class' "
-                         ": 'SimpleStrategy', 'replication_factor' : 1}");
-
-        run_simple_query("CREATE TABLE IF NOT EXISTS benchks.benchtab (pk "
-                         "bigint PRIMARY KEY, v1 bigint, v2 bigint)");
+        prepare_keyspace_and_table();
     }
 
     prepared_insert = prepare_query("INSERT INTO benchks.benchtab (pk, v1, v2) VALUES(?, ?, ?)");
@@ -247,6 +243,22 @@ int main(int argc, const char *argv[]) {
 
     cass_session_free(session);
     return 0;
+}
+
+void prepare_keyspace_and_table() {
+    run_simple_query("DROP KEYSPACE IF EXISTS benchks");
+
+    std::this_thread::sleep_for(std::chrono::seconds(4)); // Await schema agreement
+
+    run_simple_query("CREATE KEYSPACE IF NOT EXISTS benchks WITH REPLICATION = {'class' "
+                        ": 'SimpleStrategy', 'replication_factor' : 1}");
+
+    std::this_thread::sleep_for(std::chrono::seconds(4));
+
+    run_simple_query("CREATE TABLE IF NOT EXISTS benchks.benchtab (pk "
+                        "bigint PRIMARY KEY, v1 bigint, v2 bigint)");
+
+    std::this_thread::sleep_for(std::chrono::seconds(4));
 }
 
 void prepare_selects_benchmark() {

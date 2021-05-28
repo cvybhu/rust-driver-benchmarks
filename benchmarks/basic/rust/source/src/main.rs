@@ -109,6 +109,8 @@ async fn prepare_keyspace_and_table(session: &Session) -> Result<()> {
         .query("DROP KEYSPACE IF EXISTS benchks", &[])
         .await?;
 
+    session.await_schema_agreement().await?;
+
     session
         .query(
             "CREATE KEYSPACE IF NOT EXISTS benchks WITH REPLICATION = \
@@ -117,12 +119,16 @@ async fn prepare_keyspace_and_table(session: &Session) -> Result<()> {
         )
         .await?;
 
+    session.await_schema_agreement().await?;
+
     session
         .query(
             "CREATE TABLE IF NOT EXISTS benchks.benchtab (pk bigint PRIMARY KEY, v1 bigint, v2 bigint)",
             &[],
         )
         .await?;
+
+    session.await_schema_agreement().await?;
 
     Ok(())
 }
