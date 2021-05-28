@@ -1,7 +1,6 @@
 #include <atomic>
 #include <cassandra.h>
 #include <chrono>
-#include <thread>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
@@ -248,17 +247,11 @@ int main(int argc, const char *argv[]) {
 void prepare_keyspace_and_table() {
     run_simple_query("DROP KEYSPACE IF EXISTS benchks");
 
-    std::this_thread::sleep_for(std::chrono::seconds(4)); // Await schema agreement
-
     run_simple_query("CREATE KEYSPACE IF NOT EXISTS benchks WITH REPLICATION = {'class' "
                         ": 'SimpleStrategy', 'replication_factor' : 1}");
 
-    std::this_thread::sleep_for(std::chrono::seconds(4));
-
     run_simple_query("CREATE TABLE IF NOT EXISTS benchks.benchtab (pk "
                         "bigint PRIMARY KEY, v1 bigint, v2 bigint)");
-
-    std::this_thread::sleep_for(std::chrono::seconds(4));
 }
 
 void prepare_selects_benchmark() {
