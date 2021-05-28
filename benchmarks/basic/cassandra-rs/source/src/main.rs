@@ -78,8 +78,7 @@ async fn main() -> Result<()> {
 
                     if config.workload == Workload::Selects || config.workload == Workload::Mixed {
                         let mut select_stmt = prepared_select.bind();
-                        select_stmt.bind_int64(0, 2 * pk).unwrap();
-                        select_stmt.bind_int64(1, 3 * pk).unwrap();
+                        select_stmt.bind_int64(0, pk).unwrap();
 
                         let fut = session.execute(&select_stmt);
                         let res = fut.await.unwrap();
