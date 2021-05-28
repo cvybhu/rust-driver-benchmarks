@@ -6,7 +6,7 @@ This benchmark can be configured using command line arguments passed to `run.sh`
 
 * `-a`, `--address` - Address of the node where the driver will connect.  
 Note that `rust` and `cdrs-tokio` require a port
-while `cpp-driver` takes just the ip address and assumes the port is `9042`  
+while `cpp-driver` and `cassandra-rs` take just the ip address and assume the port is `9042`  
 (default: `"scylla:9042"`/`"scylla"`)
 * `-w`, `--workload` - Type of task to perform
     * `inserts` - Insert a new row into the table
