@@ -41,7 +41,7 @@ func main() {
 
 	startTime := time.Now()
 
-	for i := int64(0); i < config.cuncurrency; i++ {
+	for i := int64(0); i < config.concurrency; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -121,7 +121,7 @@ func prepareSelectsBenchmark(session *gocql.Session, config Config) {
 	var wg sync.WaitGroup
 	nextBatchStart := int64(0)
 
-	for i := int64(0); i < config.cuncurrency; i++ {
+	for i := int64(0); i < config.concurrency; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
