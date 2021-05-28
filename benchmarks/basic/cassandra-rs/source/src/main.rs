@@ -21,7 +21,7 @@ async fn main() -> Result<()> {
     let mut cluster = Cluster::default();
     cluster.set_contact_points(&config.node_address).unwrap();
     cluster.set_load_balance_round_robin();
-    cluster.set_queue_size_io((2 * config.concurrency).try_into().unwrap()).unwrap();
+    cluster.set_queue_size_io(std::cmp::max(2048, (2 * config.concurrency).try_into().unwrap())).unwrap();
     let session: Arc<Session> = Arc::new(cluster.connect_async().await.unwrap());
 
     if !config.no_prepare {
@@ -138,7 +138,7 @@ async fn prepare_selects_benchmark(
     let mut handles = Vec::with_capacity(config.concurrency.try_into().unwrap());
     let next_batch_start = Arc::new(AtomicI64::new(0));
 
-    for _ in 0..config.concurrency {
+    for _ in 0..std::cmp::max(1024, config.concurrency) {
         let session = session.clone();
         let prepared_insert = prepared_insert.clone();
         let config = config.clone();

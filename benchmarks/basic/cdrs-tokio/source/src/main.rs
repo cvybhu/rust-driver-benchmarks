@@ -156,7 +156,7 @@ async fn prepare_selects_benchmark(
     let mut handles = Vec::with_capacity(config.concurrency.try_into().unwrap());
     let next_batch_start = Arc::new(AtomicI64::new(0));
 
-    for _ in 0..config.concurrency {
+    for _ in 0..std::cmp::max(1024, config.concurrency) {
         let session = session.clone();
         let prepared_insert = prepared_insert.clone();
         let config = config.clone();

@@ -121,7 +121,7 @@ func prepareSelectsBenchmark(session *gocql.Session, config Config) {
 	var wg sync.WaitGroup
 	nextBatchStart := int64(0)
 
-	for i := int64(0); i < config.concurrency; i++ {
+	for i := int64(0); i < max(1024, config.concurrency); i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -155,4 +155,11 @@ func min(a, b int64) int64 {
 		return a
 	}
 	return b
+}
+
+func max(a, b int64) int64 {
+	if a < b {
+		return b
+	}
+	return a
 }

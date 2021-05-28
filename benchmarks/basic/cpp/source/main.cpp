@@ -34,7 +34,7 @@ void assert_future_ok(CassFuture *future, const char *message) {
 
 void connect() {
     CassCluster *cluster = cass_cluster_new();
-    if (cass_cluster_set_queue_size_io(cluster, 2 * config->concurrency) != CASS_OK) {
+    if (cass_cluster_set_queue_size_io(cluster, std::max((int64_t)2048, 2 * config->concurrency)) != CASS_OK) {
         fprintf(stderr, "ERROR: Failed to set io queue size\n");
         std::exit(1);
     }
@@ -261,6 +261,12 @@ void prepare_selects_benchmark() {
     // Pretend the workload is Inserts and run concurrent tasks
     config->workload = Workload::Inserts;
 
+    // Use bigger concurrency to make inserts faster
+    int64_t original_concurrency = config->concurrency;
+    if (original_concurrency < 1024) {
+        config->concurrency = 1024;
+    }
+
     std::vector<CallbackData> callbacks_data(config->concurrency);
     Semaphore fin_semaphore(config->concurrency);
     finished_semaphore = &fin_semaphore;
@@ -278,6 +284,7 @@ void prepare_selects_benchmark() {
         fin_semaphore.acquire_permit();
     }
 
-    // Restore previous workload
+    // Restore previous workload and conccurency
     config->workload = Workload::Selects;
+    config->concurrency = original_concurrency;
 }
