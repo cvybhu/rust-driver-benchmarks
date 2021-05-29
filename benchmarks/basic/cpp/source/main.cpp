@@ -10,15 +10,6 @@
 #include "config.hpp"
 #include "semaphore.hpp"
 
-// Global variables for easy access from callbacks
-Config *config;
-CassSession *session;
-const CassPrepared *prepared_insert;
-const CassPrepared *prepared_select;
-
-std::atomic<int64_t> next_batch_start;
-Semaphore *finished_semaphore;
-
 void assert_future_ok(CassFuture *future, const char *message) {
     if (cass_future_error_code(future) == CASS_OK) {
         return;
@@ -32,9 +23,9 @@ void assert_future_ok(CassFuture *future, const char *message) {
     std::exit(1);
 }
 
-void connect() {
+CassSession* connect(Config& config) {
     CassCluster *cluster = cass_cluster_new();
-    if (cass_cluster_set_queue_size_io(cluster, std::max((int64_t)2048, 2 * config->concurrency)) != CASS_OK) {
+    if (cass_cluster_set_queue_size_io(cluster, std::max((int64_t)2048, 2 * config.concurrency)) != CASS_OK) {
         fprintf(stderr, "ERROR: Failed to set io queue size\n");
         std::exit(1);
     }
@@ -44,12 +35,11 @@ void connect() {
         std::exit(1);
     }
 
-    session = cass_session_new();
-
-    for (auto&& node_address : config->node_addresses) {
+    for (auto&& node_address : config.node_addresses) {
         cass_cluster_set_contact_points(cluster, node_address.c_str());
     }
     
+    CassSession *session = cass_session_new();
     CassFuture *connect_future = cass_session_connect(session, cluster);
     cass_future_wait(connect_future);
 
@@ -57,9 +47,10 @@ void connect() {
     cass_future_free(connect_future);
 
     // Cluster gets leaked, it's ok this is just a benchmark
+    return session;
 }
 
-void run_simple_query(const char *query) {
+void run_simple_query(CassSession *session, const char *query) {
     CassStatement *statement = cass_statement_new(query, 0);
 
     CassFuture *result_future = cass_session_execute(session, statement);
@@ -71,7 +62,7 @@ void run_simple_query(const char *query) {
     cass_statement_free(statement);
 }
 
-const CassPrepared *prepare_query(const char *query) {
+const CassPrepared *prepare_query(CassSession* session, const char *query) {
     CassFuture *prepare_future = cass_session_prepare(session, query);
     cass_future_wait(prepare_future);
     assert_future_ok(prepare_future, "Preparing failed");
@@ -83,38 +74,44 @@ const CassPrepared *prepare_query(const char *query) {
 }
 
 struct CallbackData {
+    Config *config;
+    CassSession *session;
+    CassStatement *insert_stmt;
+    CassStatement *select_stmt;
+
+    std::atomic<int64_t> *next_batch_start;
     int64_t cur_pk;
     int64_t end_pk;
-    CassStatement* insert_stmt;
-    CassStatement* select_stmt;
+
+    Semaphore *finished_semaphore;
 };
 
 void run_concurrent_task(CallbackData *);
 void select_callback(CassFuture *, void *);
 
 void insert_callback(CassFuture *insert_future, void *data) {
-    CallbackData *callback_data = (CallbackData *)data;
+    CallbackData *cb_data = (CallbackData *)data;
 
     assert_future_ok(insert_future, "Insert failed");
 
-    if (config->workload == Workload::Inserts) {
+    if (cb_data->config->workload == Workload::Inserts) {
         // Ok all done, start next insert
-        callback_data->cur_pk += 1;
-        run_concurrent_task(callback_data);
+        cb_data->cur_pk += 1;
+        run_concurrent_task(cb_data);
         return;
     }
 
     // In case of Workload::Mixed we need to perform a select after insert
-    cass_statement_bind_int64(callback_data->select_stmt, 0, callback_data->cur_pk);
+    cass_statement_bind_int64(cb_data->select_stmt, 0, cb_data->cur_pk);
 
-    CassFuture *select_future = cass_session_execute(session, callback_data->select_stmt);
-    cass_future_set_callback(select_future, select_callback, (void *)callback_data);
+    CassFuture *select_future = cass_session_execute(cb_data->session, cb_data->select_stmt);
+    cass_future_set_callback(select_future, select_callback, (void *)cb_data);
 
     cass_future_free(select_future);
 }
 
 void select_callback(CassFuture *select_future, void *data) {
-    CallbackData *callback_data = (CallbackData *)data;
+    CallbackData *cb_data = (CallbackData *)data;
 
     assert_future_ok(select_future, "Select failed");
 
@@ -129,14 +126,14 @@ void select_callback(CassFuture *select_future, void *data) {
 
     const CassRow *row = cass_iterator_get_row(res_iter);
 
-    int64_t pk = callback_data->cur_pk;
+    int64_t pk = cb_data->cur_pk;
     int64_t v1 = 0;
     int64_t v2 = 0;
 
     cass_value_get_int64(cass_row_get_column(row, 0), &v1);
     cass_value_get_int64(cass_row_get_column(row, 1), &v2);
 
-    if (v1 != 2 * callback_data->cur_pk || v2 != 3 * callback_data->cur_pk) {
+    if (v1 != 2 * cb_data->cur_pk || v2 != 3 * cb_data->cur_pk) {
         fprintf(stderr, "ERROR: Invalid row: (pk, v1, v2) = (%ld, %ld, %ld)\n", pk, v1, v2);
         std::exit(1);
     }
@@ -145,100 +142,111 @@ void select_callback(CassFuture *select_future, void *data) {
     cass_result_free(result);
 
     // Continue running concurrent task
-    callback_data->cur_pk += 1;
-    run_concurrent_task(callback_data);
+    cb_data->cur_pk += 1;
+    run_concurrent_task(cb_data);
 }
 
-void run_concurrent_task(CallbackData *callback_data) {
+void run_concurrent_task(CallbackData *cb_data) {
+    Config* config = cb_data->config;
+
     // If current batch has finished we need to acquire a new one
-    if (callback_data->cur_pk >= callback_data->end_pk) {
-        int64_t new_batch_start = next_batch_start.fetch_add(config->batch_size);
+    if (cb_data->cur_pk >= cb_data->end_pk) {
+        int64_t new_batch_start = cb_data->next_batch_start->fetch_add(config->batch_size);
 
         if (new_batch_start >= config->tasks) {
             // No more work to do
-            finished_semaphore->free_permit();
+            cb_data->finished_semaphore->free_permit();
             return;
         }
 
-        callback_data->cur_pk = new_batch_start;
-        callback_data->end_pk = std::min(new_batch_start + config->batch_size, config->tasks);
+        cb_data->cur_pk = new_batch_start;
+        cb_data->end_pk = std::min(new_batch_start + config->batch_size, config->tasks);
     }
 
     if (config->workload == Workload::Inserts || config->workload == Workload::Mixed) {
         // Perform an insert
-        cass_statement_bind_int64(callback_data->insert_stmt, 0, callback_data->cur_pk);
-        cass_statement_bind_int64(callback_data->insert_stmt, 1, 2 * callback_data->cur_pk);
-        cass_statement_bind_int64(callback_data->insert_stmt, 2, 3 * callback_data->cur_pk);
+        cass_statement_bind_int64(cb_data->insert_stmt, 0, cb_data->cur_pk);
+        cass_statement_bind_int64(cb_data->insert_stmt, 1, 2 * cb_data->cur_pk);
+        cass_statement_bind_int64(cb_data->insert_stmt, 2, 3 * cb_data->cur_pk);
 
-        CassFuture *insert_future = cass_session_execute(session, callback_data->insert_stmt);
-        cass_future_set_callback(insert_future, insert_callback, (void *)callback_data);
+        CassFuture *insert_future = cass_session_execute(cb_data->session, cb_data->insert_stmt);
+        cass_future_set_callback(insert_future, insert_callback, (void *)cb_data);
 
         cass_future_free(insert_future);
     }
 
     if (config->workload == Workload::Selects) {
         // Perform a select
-        cass_statement_bind_int64(callback_data->select_stmt, 0, callback_data->cur_pk);
+        cass_statement_bind_int64(cb_data->select_stmt, 0, cb_data->cur_pk);
 
-        CassFuture *select_future = cass_session_execute(session, callback_data->select_stmt);
-        cass_future_set_callback(select_future, select_callback, (void *)callback_data);
+        CassFuture *select_future = cass_session_execute(cb_data->session, cb_data->select_stmt);
+        cass_future_set_callback(select_future, select_callback, (void *)cb_data);
 
         cass_future_free(select_future);
     }
 }
 
-void prepare_keyspace_and_table();
-void prepare_selects_benchmark();
+void prepare_keyspace_and_table(CassSession*);
+void prepare_selects_benchmark(CassSession*, const CassPrepared*, Config&);
 
 int main(int argc, const char *argv[]) {
     std::cout << "Starting cpp-driver benchmark!\n\n";
 
     // Parse config
-    Config the_config(argc, argv);
-    config = &the_config;
+    Config config(argc, argv);
 
     std::cout << "Benchmark configuration:\n";
-    config->print();
+    config.print();
 
     // Connect to the cluster
-    connect();
+    CassSession* session = connect(config);
 
     // Prepare before the benchmark
-    if (!config->dont_prepare) {
-        prepare_keyspace_and_table();
+    if (!config.dont_prepare) {
+        prepare_keyspace_and_table(session);
     }
 
-    prepared_insert = prepare_query("INSERT INTO benchks.benchtab (pk, v1, v2) VALUES(?, ?, ?)");
-    prepared_select = prepare_query("SELECT v1, v2 FROM benchks.benchtab WHERE pk = ?");
+    const CassPrepared* prepared_insert = prepare_query(session, "INSERT INTO benchks.benchtab (pk, v1, v2) VALUES(?, ?, ?)");
+    const CassPrepared* prepared_select = prepare_query(session, "SELECT v1, v2 FROM benchks.benchtab WHERE pk = ?");
 
-    if (config->workload == Workload::Selects && !config->dont_prepare) {
-        prepare_selects_benchmark();
+    if (config.workload == Workload::Selects && !config.dont_prepare) {
+        prepare_selects_benchmark(session, prepared_insert, config);
     }
 
     // Start concurrent tasks
-    std::vector<CallbackData> callbacks_data(config->concurrency);
-    Semaphore fin_semaphore(config->concurrency);
-    finished_semaphore = &fin_semaphore;
-    next_batch_start = 0;
+    std::vector<CallbackData> callbacks_data(config.concurrency);
+    Semaphore finished_semaphore(config.concurrency);
+    std::atomic<int64_t> next_batch_start(0);
 
     std::cout << "\nStarting the benchmark\n";
     auto start_time = std::chrono::high_resolution_clock::now();
 
-    for (int64_t c = 0; c < config->concurrency; c++) {
+    for (int64_t c = 0; c < config.concurrency; c++) {
         callbacks_data[c] = CallbackData {
-            .cur_pk = 0,
-            .end_pk = 0,
+            .config = &config,
+            .session = session,
             .insert_stmt = cass_prepared_bind(prepared_insert),
             .select_stmt = cass_prepared_bind(prepared_select),
+
+            .next_batch_start = &next_batch_start,
+            .cur_pk = 0,
+            .end_pk = 0,
+
+            .finished_semaphore = &finished_semaphore
         };
 
-        finished_semaphore->acquire_permit();
+        finished_semaphore.acquire_permit();
         run_concurrent_task(&callbacks_data[c]);
     }
 
     // Wait for concurrent tasks to finish
-    for (int64_t c = 0; c < config->concurrency; c++) {
-        finished_semaphore->acquire_permit();
+    for (int64_t c = 0; c < config.concurrency; c++) {
+        finished_semaphore.acquire_permit();
+    }
+
+    for (auto&& cb_data : callbacks_data) {
+        cass_statement_free(cb_data.insert_stmt);
+        cass_statement_free(cb_data.select_stmt);
     }
 
     auto end_time = std::chrono::high_resolution_clock::now();
@@ -250,52 +258,63 @@ int main(int argc, const char *argv[]) {
     return 0;
 }
 
-void prepare_keyspace_and_table() {
-    run_simple_query("DROP KEYSPACE IF EXISTS benchks");
+void prepare_keyspace_and_table(CassSession* session) {
+    run_simple_query(session, "DROP KEYSPACE IF EXISTS benchks");
 
-    run_simple_query("CREATE KEYSPACE IF NOT EXISTS benchks WITH REPLICATION = {'class' "
+    run_simple_query(session, "CREATE KEYSPACE IF NOT EXISTS benchks WITH REPLICATION = {'class' "
                         ": 'SimpleStrategy', 'replication_factor' : 1}");
 
-    run_simple_query("CREATE TABLE IF NOT EXISTS benchks.benchtab (pk "
+    run_simple_query(session, "CREATE TABLE IF NOT EXISTS benchks.benchtab (pk "
                         "bigint PRIMARY KEY, v1 bigint, v2 bigint)");
 }
 
-void prepare_selects_benchmark() {
+void prepare_selects_benchmark(CassSession *session, const CassPrepared* prepared_insert, Config& config) {
     // Before performing selects we have to insert values to select
     std::cout << "Preparing a selects benchmark (inserting values)...\n";
 
     // Pretend the workload is Inserts and run concurrent tasks
-    config->workload = Workload::Inserts;
+    config.workload = Workload::Inserts;
 
     // Use bigger concurrency to make inserts faster
-    int64_t original_concurrency = config->concurrency;
+    int64_t original_concurrency = config.concurrency;
     if (original_concurrency < 1024) {
-        config->concurrency = 1024;
+        config.concurrency = 1024;
     }
 
-    std::vector<CallbackData> callbacks_data(config->concurrency);
-    Semaphore fin_semaphore(config->concurrency);
-    finished_semaphore = &fin_semaphore;
-    next_batch_start = 0;
+    // Start concurrent tasks
+    std::vector<CallbackData> callbacks_data(config.concurrency);
+    Semaphore finished_semaphore(config.concurrency);
+    std::atomic<int64_t> next_batch_start(0);
 
-    for (int64_t c = 0; c < config->concurrency; c++) {
+    for (int64_t c = 0; c < config.concurrency; c++) {
         callbacks_data[c] = CallbackData {
+            .config = &config,
+            .session = session,
+            .insert_stmt = cass_prepared_bind(prepared_insert),
+            .select_stmt = nullptr, // Won't be used
+
+            .next_batch_start = &next_batch_start,
             .cur_pk = 0,
             .end_pk = 0,
-            .insert_stmt = cass_prepared_bind(prepared_insert),
-            .select_stmt = cass_prepared_bind(prepared_select),
+
+            .finished_semaphore = &finished_semaphore
         };
 
-        fin_semaphore.acquire_permit();
+        finished_semaphore.acquire_permit();
         run_concurrent_task(&callbacks_data[c]);
     }
 
     // Wait for concurrent tasks to finish
-    for (int64_t c = 0; c < config->concurrency; c++) {
-        fin_semaphore.acquire_permit();
+    for (int64_t c = 0; c < config.concurrency; c++) {
+        finished_semaphore.acquire_permit();
+    }
+
+    for (auto&& cb_data : callbacks_data) {
+        cass_statement_free(cb_data.insert_stmt);
+        cass_statement_free(cb_data.select_stmt);
     }
 
     // Restore previous workload and conccurency
-    config->workload = Workload::Selects;
-    config->concurrency = original_concurrency;
+    config.workload = Workload::Selects;
+    config.concurrency = original_concurrency;
 }
