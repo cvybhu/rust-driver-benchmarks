@@ -19,12 +19,16 @@ async fn main() -> Result<()> {
     println!("Benchmark configuration:\n{:#?}\n", config);
 
     let mut cluster = Cluster::default();
-    cluster.set_contact_points(&config.node_address).unwrap();
+
+    for node_address in &config.node_addresses {
+        cluster.set_contact_points(&node_address).unwrap();
+    }
+
     cluster.set_load_balance_round_robin();
     cluster.set_queue_size_io(std::cmp::max(2048, (2 * config.concurrency).try_into().unwrap())).unwrap();
     let session: Arc<Session> = Arc::new(cluster.connect_async().await.unwrap());
 
-    if !config.no_prepare {
+    if !config.dont_prepare {
         prepare_keyspace_and_table(&session).await?;
     }
 
@@ -34,7 +38,7 @@ async fn main() -> Result<()> {
     let prepared_insert = Arc::new(session.prepare(insert_stmt).unwrap().await.unwrap());
     let prepared_select = Arc::new(session.prepare(select_stmt).unwrap().await.unwrap());
 
-    if config.workload == Workload::Selects && !config.no_prepare {
+    if config.workload == Workload::Selects && !config.dont_prepare {
         prepare_selects_benchmark(&session, &prepared_insert, &config).await?;
     }
 

@@ -10,12 +10,12 @@ pub enum Workload {
 
 #[derive(Debug)]
 pub struct Config {
-    pub node_address: String,
+    pub node_addresses: Vec<String>,
     pub workload: Workload,
     pub tasks: i64,
     pub concurrency: i64,
     pub batch_size: i64,
-    pub no_prepare: bool,
+    pub dont_prepare: bool,
 }
 
 impl Config {
@@ -25,10 +25,10 @@ impl Config {
         opts.optflag("h", "help", "Print usage information");
 
         opts.optopt(
-            "a",
-            "address",
-            "Address of database node to connect to
-            (default: 'scylla')",
+            "n",
+            "nodes",
+            "Addresses of database nodes to connect to separated by a comma
+            (default: 'scylla:9042')",
             "ADDRESS",
         );
         opts.optopt(
@@ -49,8 +49,8 @@ impl Config {
         );
 
         opts.optflag(
-            "n",
-            "no-prepare",
+            "d",
+            "dont-prepare",
             "Don't create tables and insert into them before the benchmark",
         );
 
@@ -62,7 +62,9 @@ impl Config {
             return Ok(None);
         }
 
-        let address: String = parsed.opt_get_default("address", "scylla".to_string())?;
+        let addresses: String = parsed.opt_get_default("nodes", "scylla:9042".to_string())?;
+
+        let node_addresses: Vec<String> = addresses.split(',').map(|s| s.to_string()).collect();
 
         let workload_str: String = parsed.opt_get_default("workload", "inserts".to_string())?;
         let workload: Workload = match workload_str.as_str() {
@@ -80,7 +82,7 @@ impl Config {
         let tasks: i64 = parsed.opt_get_default("tasks", 1_000_000)?;
         let concurrency: i64 = parsed.opt_get_default("concurrency", 1024)?;
 
-        let no_prepare: bool = parsed.opt_present("no-prepare");
+        let dont_prepare: bool = parsed.opt_present("dont-prepare");
 
         let mut batch_size = 256;
 
@@ -89,12 +91,12 @@ impl Config {
         }
 
         Ok(Some(Config {
-            node_address: address,
+            node_addresses,
             workload,
             tasks,
             concurrency,
             batch_size,
-            no_prepare,
+            dont_prepare,
         }))
     }
 }

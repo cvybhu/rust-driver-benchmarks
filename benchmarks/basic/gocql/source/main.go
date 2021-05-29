@@ -17,7 +17,7 @@ func main() {
 	config := readConfig()
 	fmt.Printf("Benchmark configuration: %#v\n", config)
 
-	cluster := gocql.NewCluster(config.nodeAddress)
+	cluster := gocql.NewCluster(config.nodeAddresses[:]...)
 	cluster.Timeout = 5 * time.Second
 	cluster.PoolConfig.HostSelectionPolicy = gocql.TokenAwareHostPolicy(gocql.RoundRobinHostPolicy())
 
@@ -26,11 +26,11 @@ func main() {
 		panic(err)
 	}
 
-	if !config.noPrepare {
+	if !config.dontPrepare {
 		prepareKeyspaceAndTable(session)
 	}
 
-	if config.workload == Selects && !config.noPrepare {
+	if config.workload == Selects && !config.dontPrepare {
 		prepareSelectsBenchmark(session, config)
 	}
 

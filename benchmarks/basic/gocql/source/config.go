@@ -1,6 +1,9 @@
 package main
 
-import "flag"
+import (
+	"flag"
+	"strings"
+)
 
 type Workload int
 
@@ -11,22 +14,21 @@ const (
 )
 
 type Config struct {
-	nodeAddress string
+	nodeAddresses []string
 	workload    Workload
 	tasks       int64
 	concurrency  int64
 	batchSize   int64
-	noPrepare   bool
+	dontPrepare   bool
 }
 
 func readConfig() Config {
 	config := Config{}
 
-	flag.StringVar(
-		&config.nodeAddress,
-		"address",
+	nodes := flag.String(
+		"nodes",
 		"scylla:9042",
-		"Address of database node to connect to",
+		"Addresses of database nodes to connect to separated by a comma",
 	)
 
 	workload := flag.String(
@@ -50,13 +52,17 @@ func readConfig() Config {
 	)
 
 	flag.BoolVar(
-		&config.noPrepare,
-		"no-prepare",
+		&config.dontPrepare,
+		"dont-prepare",
 		false,
 		"Don't create tables and insert into them before the benchmark",
 	)
 
 	flag.Parse()
+
+	for _, node_address := range strings.Split(*nodes, ",") {
+		config.nodeAddresses = append(config.nodeAddresses, node_address)
+	}
 
 	switch *workload {
 	case "inserts":

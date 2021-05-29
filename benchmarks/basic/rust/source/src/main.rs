@@ -20,13 +20,13 @@ async fn main() -> Result<()> {
     println!("Benchmark configuration:\n{:#?}\n", config);
 
     let session: Session = SessionBuilder::new()
-        .known_node(config.node_address.clone())
+        .known_nodes(&config.node_addresses)
         .build()
         .await?;
 
     let session = Arc::new(session);
 
-    if !config.no_prepare {
+    if !config.dont_prepare {
         prepare_keyspace_and_table(&session).await?;
     }
 
@@ -36,7 +36,7 @@ async fn main() -> Result<()> {
     let prepared_insert = Arc::new(session.prepare(insert_stmt).await?);
     let prepared_select = Arc::new(session.prepare(select_stmt).await?);
 
-    if config.workload == Workload::Selects && !config.no_prepare {
+    if config.workload == Workload::Selects && !config.dont_prepare {
         prepare_selects_benchmark(&session, &prepared_insert, &config).await?;
     }
 

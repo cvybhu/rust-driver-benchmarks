@@ -46,7 +46,10 @@ void connect() {
 
     session = cass_session_new();
 
-    cass_cluster_set_contact_points(cluster, config->node_address);
+    for (auto&& node_address : config->node_addresses) {
+        cass_cluster_set_contact_points(cluster, node_address.c_str());
+    }
+    
     CassFuture *connect_future = cass_session_connect(session, cluster);
     cass_future_wait(connect_future);
 
@@ -203,14 +206,14 @@ int main(int argc, const char *argv[]) {
     connect();
 
     // Prepare before the benchmark
-    if (!config->no_prepare) {
+    if (!config->dont_prepare) {
         prepare_keyspace_and_table();
     }
 
     prepared_insert = prepare_query("INSERT INTO benchks.benchtab (pk, v1, v2) VALUES(?, ?, ?)");
     prepared_select = prepare_query("SELECT v1, v2 FROM benchks.benchtab WHERE pk = ?");
 
-    if (config->workload == Workload::Selects && !config->no_prepare) {
+    if (config->workload == Workload::Selects && !config->dont_prepare) {
         prepare_selects_benchmark();
     }
 

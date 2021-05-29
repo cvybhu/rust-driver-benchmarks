@@ -1,6 +1,8 @@
 #ifndef CONFIG_HPP
 #define CONFIG_HPP
 
+#include <vector>
+#include <string>
 #include <cstring>
 #include <iostream>
 #include <stdio.h>
@@ -14,24 +16,24 @@ enum class Workload {
 inline void print_usage();
 
 struct Config {
-    const char *node_address;
+    std::vector<std::string> node_addresses;
     Workload workload;
     int64_t tasks;
     int64_t concurrency;
     int64_t batch_size;
-    bool no_prepare;
+    bool dont_prepare;
 
     Config(int argc, const char *argv[]) {
-        node_address = "scylla";
+        node_addresses = {"scylla"};
         workload = Workload::Inserts;
         tasks = 1000 * 1000;
         concurrency = 1024;
-        no_prepare = false;
+        dont_prepare = false;
 
         for (int a = 1; a < argc;) {
-            // --no-prepare
-            if (strcmp(argv[a], "-n") == 0 || strcmp(argv[a], "--no-prepare") == 0) {
-                no_prepare = true;
+            // --dont-prepare
+            if (strcmp(argv[a], "-d") == 0 || strcmp(argv[a], "--dont-prepare") == 0) {
+                dont_prepare = true;
                 a += 1;
                 continue;
             }
@@ -41,9 +43,20 @@ struct Config {
                 std::exit(1);
             }
 
-            // --address
-            if (strcmp(argv[a], "-a") == 0 || strcmp(argv[a], "--address") == 0) {
-                node_address = argv[a + 1];
+            // --nodes
+            if (strcmp(argv[a], "-n") == 0 || strcmp(argv[a], "--nodes") == 0) {
+                std::vector<std::string> addresses = {""};
+
+                for (const char* c = argv[a + 1]; *c != 0; c++) {
+                    if (*c == ',') {
+                        addresses.push_back("");
+                    } else {
+                        addresses.back() += *c;
+                    }
+                }
+
+                node_addresses = addresses;
+
                 a += 2;
                 continue;
             }
@@ -98,7 +111,12 @@ struct Config {
 
     void print() {
         std::cout << "Config:\n";
-        std::cout << "    address: " << node_address << "\n";
+        std::cout << "    nodes: [";
+        for (auto&& node_address : node_addresses) {
+            std::cout << node_address << ", ";
+        } 
+        std::cout << "]\n";
+
         std::cout << "    workload: ";
 
         switch (workload) {
@@ -117,7 +135,7 @@ struct Config {
 
         std::cout << "    tasks: " << tasks << "\n";
         std::cout << "    concurrency: " << concurrency << "\n";
-        std::cout << "    no_prepare: " << (no_prepare ? "true" : "false") << "\n";
+        std::cout << "    dont_prepare: " << (dont_prepare ? "true" : "false") << "\n";
 
         std::cout << std::endl;
     }

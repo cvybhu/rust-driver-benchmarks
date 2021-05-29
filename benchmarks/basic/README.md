@@ -4,7 +4,7 @@ This benchmark measures performance of basic operations (insert, select) on a si
 ## Options
 This benchmark can be configured using command line arguments passed to `run.sh`:
 
-* `-a`, `--address` - Address of the node where the driver will connect.  
+* `-n`, `--nodes` - Addresses of database nodes to connect to separated by a comma.
 Note that `rust` and `cdrs-tokio` require a port
 while `cpp-driver` and `cassandra-rs` take just the ip address and assume the port is `9042`  
 (default: `"scylla:9042"`/`"scylla"`)
@@ -18,7 +18,7 @@ while `cpp-driver` and `cassandra-rs` take just the ip address and assume the po
 (default: 1 000 000)
 * `-c`, `--concurrency` - Maximum number of requests performed at once  
 (default: 1024)
-* `-n`, `--no-prepare` - Don't create the keyspace and table (and don't insert values in case of `selects` workload)  
+* `-d`, `--dont-prepare` - Don't create the keyspace and table (and don't insert values in case of `selects` workload)  
 Normally when the `selects` workload is used the driver will create a keyspace, table and insert the values to select.
 When this option is disabled the benchmark assumes this has already been done. This can be achieved by first running
 the driver with `inserts` workload.  
