@@ -48,7 +48,7 @@ for (tasks, concurrency, workload) in sorted_confs:
             print(f'\nBENCHMARK {{"driver": "{driver}", "workload": "{workload}", "concurency": {concurrency}, "tasks": {tasks}, "sample": {sample}}}')
 
             subprocess.call([f"../benchmarks/basic/{driver}/run.sh", 
-                             "--address", nodes, 
+                             "--nodes", nodes, 
                              "--workload", workload,
                              "--concurrency", str(concurrency),
                              "--tasks", str(tasks)])
