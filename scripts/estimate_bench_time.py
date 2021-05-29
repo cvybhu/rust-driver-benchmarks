@@ -2,7 +2,7 @@
 
 import os
 
-task_options = [1000 * 1000]
+task_options = [1000 * 1000, 10 * 1000 * 1000]
 concurrency_options = [64, 128, 256, 512, 1024, 2048, 4096, 8192]
 workflow_options = ["inserts", "selects", "mixed"]
 
@@ -17,14 +17,17 @@ configurations = []
 for t in task_options:
     for c in concurrency_options:
         for w in workflow_options:
+            if t > 1000 * 1000 and c < 512:
+                continue
+
             configurations.append((t, c, w))
 
 # Returns estimated time in seconds to complete single sample of a benchmark using rust driver
 def estimate_time(configuration):
     t = configuration[0] / configuration[1]
 
-    # Scale so that 1000 000 inserts with concurrency 64 takes 250 seconds to match scylla-rust-driver
-    t = t * 250/15625 
+    # Scale so that it matches observed time
+    t = t * 0.005
 
     # Take into account the time needed to prepare a selects benchmark
     if configuration[2] == "selects" or configuration[2] == "mixed":
