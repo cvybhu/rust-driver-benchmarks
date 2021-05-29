@@ -35,8 +35,8 @@ async fn main() -> Result<()> {
     let insert_stmt = "INSERT INTO benchks.benchtab (pk, v1, v2) VALUES(?, ?, ?)";
     let select_stmt = "SELECT v1, v2 FROM benchks.benchtab WHERE pk = ?";
 
-    let prepared_insert = Arc::new(session.prepare(insert_stmt).unwrap().await.unwrap());
-    let prepared_select = Arc::new(session.prepare(select_stmt).unwrap().await.unwrap());
+    let prepared_insert = session.prepare(insert_stmt).unwrap().await.unwrap();
+    let prepared_select = session.prepare(select_stmt).unwrap().await.unwrap();
 
     if config.workload == Workload::Selects && !config.dont_prepare {
         prepare_selects_benchmark(&session, &prepared_insert, &config).await?;
@@ -51,10 +51,10 @@ async fn main() -> Result<()> {
 
     for _ in 0..config.concurrency {
         let session = session.clone();
-        let prepared_insert = prepared_insert.clone();
-        let prepared_select = prepared_select.clone();
         let config = config.clone();
         let next_batch_start = next_batch_start.clone();
+        let mut insert_stmt = prepared_insert.bind();
+        let mut select_stmt = prepared_select.bind();
 
         handles.push(tokio::spawn(async move {
             loop {
@@ -71,7 +71,6 @@ async fn main() -> Result<()> {
 
                 for pk in cur_batch_start..cur_batch_end {
                     if config.workload == Workload::Inserts || config.workload == Workload::Mixed {
-                        let mut insert_stmt = prepared_insert.bind();
                         insert_stmt.bind_int64(0, pk).unwrap();
                         insert_stmt.bind_int64(1, 2 * pk).unwrap();
                         insert_stmt.bind_int64(2, 3 * pk).unwrap();
@@ -81,7 +80,6 @@ async fn main() -> Result<()> {
                     }
 
                     if config.workload == Workload::Selects || config.workload == Workload::Mixed {
-                        let mut select_stmt = prepared_select.bind();
                         select_stmt.bind_int64(0, pk).unwrap();
 
                         let fut = session.execute(&select_stmt);
@@ -133,7 +131,7 @@ async fn prepare_keyspace_and_table(session: &Session) -> Result<()> {
 
 async fn prepare_selects_benchmark(
     session: &Arc<Session>,
-    prepared_insert: &Arc<PreparedStatement>,
+    prepared_insert: &PreparedStatement,
     config: &Arc<Config>,
 ) -> Result<()> {
     println!("Preparing a selects benchmark (inserting values)...");
@@ -143,7 +141,7 @@ async fn prepare_selects_benchmark(
 
     for _ in 0..std::cmp::max(1024, config.concurrency) {
         let session = session.clone();
-        let prepared_insert = prepared_insert.clone();
+        let mut insert_stmt = prepared_insert.bind();
         let config = config.clone();
         let next_batch_start = next_batch_start.clone();
 
@@ -161,7 +159,6 @@ async fn prepare_selects_benchmark(
                     std::cmp::min(cur_batch_start + config.batch_size, config.tasks);
 
                 for pk in cur_batch_start..cur_batch_end {
-                    let mut insert_stmt = prepared_insert.bind();
                     insert_stmt.bind_int64(0, pk).unwrap();
                     insert_stmt.bind_int64(1, 2 * pk).unwrap();
                     insert_stmt.bind_int64(2, 3 * pk).unwrap();

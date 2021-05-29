@@ -66,7 +66,9 @@ void run_simple_query(const char *query) {
     cass_future_wait(result_future);
 
     assert_future_ok(result_future, "Simple query failed");
+
     cass_future_free(result_future);
+    cass_statement_free(statement);
 }
 
 const CassPrepared *prepare_query(const char *query) {
@@ -83,6 +85,8 @@ const CassPrepared *prepare_query(const char *query) {
 struct CallbackData {
     int64_t cur_pk;
     int64_t end_pk;
+    CassStatement* insert_stmt;
+    CassStatement* select_stmt;
 };
 
 void run_concurrent_task(CallbackData *);
@@ -101,13 +105,11 @@ void insert_callback(CassFuture *insert_future, void *data) {
     }
 
     // In case of Workload::Mixed we need to perform a select after insert
-    CassStatement *statement = cass_prepared_bind(prepared_select);
-    cass_statement_bind_int64(statement, 0, callback_data->cur_pk);
+    cass_statement_bind_int64(callback_data->select_stmt, 0, callback_data->cur_pk);
 
-    CassFuture *select_future = cass_session_execute(session, statement);
+    CassFuture *select_future = cass_session_execute(session, callback_data->select_stmt);
     cass_future_set_callback(select_future, select_callback, (void *)callback_data);
 
-    cass_statement_free(statement);
     cass_future_free(select_future);
 }
 
@@ -164,27 +166,23 @@ void run_concurrent_task(CallbackData *callback_data) {
 
     if (config->workload == Workload::Inserts || config->workload == Workload::Mixed) {
         // Perform an insert
-        CassStatement *statement = cass_prepared_bind(prepared_insert);
-        cass_statement_bind_int64(statement, 0, callback_data->cur_pk);
-        cass_statement_bind_int64(statement, 1, 2 * callback_data->cur_pk);
-        cass_statement_bind_int64(statement, 2, 3 * callback_data->cur_pk);
+        cass_statement_bind_int64(callback_data->insert_stmt, 0, callback_data->cur_pk);
+        cass_statement_bind_int64(callback_data->insert_stmt, 1, 2 * callback_data->cur_pk);
+        cass_statement_bind_int64(callback_data->insert_stmt, 2, 3 * callback_data->cur_pk);
 
-        CassFuture *insert_future = cass_session_execute(session, statement);
+        CassFuture *insert_future = cass_session_execute(session, callback_data->insert_stmt);
         cass_future_set_callback(insert_future, insert_callback, (void *)callback_data);
 
-        cass_statement_free(statement);
         cass_future_free(insert_future);
     }
 
     if (config->workload == Workload::Selects) {
         // Perform a select
-        CassStatement *statement = cass_prepared_bind(prepared_select);
-        cass_statement_bind_int64(statement, 0, callback_data->cur_pk);
+        cass_statement_bind_int64(callback_data->select_stmt, 0, callback_data->cur_pk);
 
-        CassFuture *select_future = cass_session_execute(session, statement);
+        CassFuture *select_future = cass_session_execute(session, callback_data->select_stmt);
         cass_future_set_callback(select_future, select_callback, (void *)callback_data);
 
-        cass_statement_free(statement);
         cass_future_free(select_future);
     }
 }
@@ -227,7 +225,12 @@ int main(int argc, const char *argv[]) {
     auto start_time = std::chrono::high_resolution_clock::now();
 
     for (int64_t c = 0; c < config->concurrency; c++) {
-        callbacks_data[c] = CallbackData{.cur_pk = 0, .end_pk = 0};
+        callbacks_data[c] = CallbackData {
+            .cur_pk = 0,
+            .end_pk = 0,
+            .insert_stmt = cass_prepared_bind(prepared_insert),
+            .select_stmt = cass_prepared_bind(prepared_select),
+        };
 
         finished_semaphore->acquire_permit();
         run_concurrent_task(&callbacks_data[c]);
@@ -276,7 +279,12 @@ void prepare_selects_benchmark() {
     next_batch_start = 0;
 
     for (int64_t c = 0; c < config->concurrency; c++) {
-        callbacks_data[c] = CallbackData{.cur_pk = 0, .end_pk = 0};
+        callbacks_data[c] = CallbackData {
+            .cur_pk = 0,
+            .end_pk = 0,
+            .insert_stmt = cass_prepared_bind(prepared_insert),
+            .select_stmt = cass_prepared_bind(prepared_select),
+        };
 
         fin_semaphore.acquire_permit();
         run_concurrent_task(&callbacks_data[c]);
