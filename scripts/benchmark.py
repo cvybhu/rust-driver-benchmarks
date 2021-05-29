@@ -1,4 +1,5 @@
 import subprocess
+import sys
 
 task_options = [1000 * 1000]
 concurrency_options = [64, 128, 256, 512, 1024, 2048, 4096, 8192]
@@ -45,10 +46,12 @@ for (tasks, concurrency, workload) in sorted_confs:
             else:
                 nodes = ",".join(nodes_with_ports)
 
-            print(f'\nBENCHMARK {{"driver": "{driver}", "workload": "{workload}", "concurency": {concurrency}, "tasks": {tasks}, "sample": {sample}}}')
+            print(f'\nBENCHMARK {{"driver": "{driver}", "workload": "{workload}", "concurrency": {concurrency}, "tasks": {tasks}, "sample": {sample}}}')
+            sys.stdout.flush()
 
             subprocess.call([f"../benchmarks/basic/{driver}/run.sh", 
                              "--nodes", nodes, 
                              "--workload", workload,
                              "--concurrency", str(concurrency),
                              "--tasks", str(tasks)])
+
