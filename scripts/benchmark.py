@@ -10,7 +10,7 @@ drivers = ["rust", "cpp", "cassandra-cpp", "gocql", "cdrs-tokio"]
 # Each configuration is repeated samples times to ensure consistent results
 samples = 3
 
-nodes_no_ports = ["scylla"]
+nodes_no_ports = ["127.0.0.1"]
 #nodes_no_ports = ["10.0.0.226", "10.0.1.52", "10.0.2.86"]
 
 nodes_with_ports = [n + ":9042" for n in nodes_no_ports]

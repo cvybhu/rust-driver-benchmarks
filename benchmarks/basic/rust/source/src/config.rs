@@ -28,7 +28,7 @@ impl Config {
             "n",
             "nodes",
             "Addresses of database nodes to connect to separated by a comma
-            (default: 'scylla:9042')",
+            (default: '127.0.0.1:9042')",
             "ADDRESS",
         );
         opts.optopt(
@@ -62,7 +62,7 @@ impl Config {
             return Ok(None);
         }
 
-        let addresses: String = parsed.opt_get_default("nodes", "scylla:9042".to_string())?;
+        let addresses: String = parsed.opt_get_default("nodes", "127.0.0.1:9042".to_string())?;
 
         let node_addresses: Vec<String> = addresses.split(',').map(|s| s.to_string()).collect();
 

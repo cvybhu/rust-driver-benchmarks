@@ -24,7 +24,7 @@ struct Config {
     bool dont_prepare;
 
     Config(int argc, const char *argv[]) {
-        node_addresses = {"scylla"};
+        node_addresses = {"127.0.0.1"};
         workload = Workload::Inserts;
         tasks = 1000 * 1000;
         concurrency = 1024;

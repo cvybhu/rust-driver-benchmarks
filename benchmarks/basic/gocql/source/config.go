@@ -27,7 +27,7 @@ func readConfig() Config {
 
 	nodes := flag.String(
 		"nodes",
-		"scylla:9042",
+		"127.0.0.1:9042",
 		"Addresses of database nodes to connect to separated by a comma",
 	)
 
