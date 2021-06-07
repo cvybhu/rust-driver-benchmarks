@@ -6,7 +6,7 @@ task_options = [1000 * 1000, 10 * 1000 * 1000]
 concurrency_options = [64, 128, 256, 512, 1024, 2048, 4096, 8192]
 workflow_options = ["inserts", "selects", "mixed"]
 
-drivers = ["rust", "cpp", "cassandra-rs", "cdrs-tokio", "gocql"]
+drivers = ["rust", "cpp", "cassandra-cpp", "cdrs-tokio", "gocql"]
 
 restarts = False
 

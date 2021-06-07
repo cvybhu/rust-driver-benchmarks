@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    println!("Starting cassandra-rs benchmark\n");
+    println!("Starting cassandra-cpp benchmark\n");
 
     let config: Arc<Config> = match Config::read()? {
         Some(config) => Arc::new(config),

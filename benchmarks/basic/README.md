@@ -6,7 +6,7 @@ This benchmark can be configured using command line arguments passed to `run.sh`
 
 * `-n`, `--nodes` - Addresses of database nodes to connect to separated by a comma.
 Note that `rust` and `cdrs-tokio` require a port
-while `cpp-driver` and `cassandra-rs` take just the ip address and assume the port is `9042`  
+while `cpp-driver` and `cassandra-cpp` take just the ip address and assume the port is `9042`  
 (default: `"scylla:9042"`/`"scylla"`)
 * `-w`, `--workload` - Type of task to perform
     * `inserts` - Insert a new row into the table

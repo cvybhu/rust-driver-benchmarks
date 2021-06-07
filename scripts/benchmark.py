@@ -5,7 +5,7 @@ task_options = [1000 * 1000, 10 * 1000 * 1000]
 concurrency_options = [64, 128, 256, 512, 1024, 2048, 4096, 8192]
 workload_options = ["inserts", "selects", "mixed"]
 
-drivers = ["rust", "cpp", "cassandra-rs", "gocql", "cdrs-tokio"]
+drivers = ["rust", "cpp", "cassandra-cpp", "gocql", "cdrs-tokio"]
 
 # Each configuration is repeated samples times to ensure consistent results
 samples = 3
@@ -44,7 +44,7 @@ for (tasks, concurrency, workload) in sorted_confs:
         for sample in range(samples):
             # Run the benchmark
             nodes = ""
-            if driver in ["cpp", "cassandra-rs"]:
+            if driver in ["cpp", "cassandra-cpp"]:
                 nodes = ",".join(nodes_no_ports)
             else:
                 nodes = ",".join(nodes_with_ports)
