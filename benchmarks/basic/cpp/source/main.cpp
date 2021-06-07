@@ -6,6 +6,7 @@
 #include <iostream>
 #include <utility>
 #include <vector>
+#include <thread>
 
 #include "config.hpp"
 #include "semaphore.hpp"
@@ -39,6 +40,11 @@ CassSession* connect(Config& config) {
         cass_cluster_set_contact_points(cluster, node_address.c_str());
     }
     
+    if(cass_cluster_set_num_threads_io(cluster, std::thread::hardware_concurrency()) != CASS_OK) {
+        fprintf(stderr, "ERROR: Failed to set io threads number");
+        std::exit(1);
+    }
+
     CassSession *session = cass_session_new();
     CassFuture *connect_future = cass_session_connect(session, cluster);
     cass_future_wait(connect_future);

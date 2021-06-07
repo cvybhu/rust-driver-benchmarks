@@ -24,8 +24,9 @@ async fn main() -> Result<()> {
         cluster.set_contact_points(&node_address).unwrap();
     }
 
-    cluster.set_load_balance_round_robin();
     cluster.set_queue_size_io(std::cmp::max(2048, (2 * config.concurrency).try_into().unwrap())).unwrap();
+    cluster.set_num_threads_io(num_cpus::get().try_into().unwrap()).unwrap();
+
     let session: Arc<Session> = Arc::new(cluster.connect_async().await.unwrap());
 
     if !config.dont_prepare {
