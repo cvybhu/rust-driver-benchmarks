@@ -26,7 +26,7 @@ void assert_future_ok(CassFuture *future, const char *message) {
     std::exit(1);
 }
 
-CassSession* connect(Config& config) {
+std::pair<CassSession*, CassCluster*> connect(Config& config) {
     CassCluster *cluster = cass_cluster_new();
     if (cass_cluster_set_queue_size_io(cluster, std::max((int64_t)2048, 2 * config.concurrency)) != CASS_OK) {
         fprintf(stderr, "ERROR: Failed to set io queue size\n");
@@ -55,7 +55,7 @@ CassSession* connect(Config& config) {
     cass_future_free(connect_future);
 
     // Cluster gets leaked, it's ok this is just a benchmark
-    return session;
+    return std::make_pair(session, cluster);
 }
 
 void run_simple_query(CassSession *session, const char *query) {
@@ -110,6 +110,7 @@ void insert_callback(CassFuture *insert_future, void *data) {
 
 void on_insert_done(CassFuture *insert_future, CallbackData* cb_data) {
     assert_future_ok(insert_future, "Insert failed");
+    cass_future_free(insert_future);
 
     if (cb_data->config->workload == Workload::Inserts) {
         // Ok all done, start next insert
@@ -123,8 +124,6 @@ void on_insert_done(CassFuture *insert_future, CallbackData* cb_data) {
 
     CassFuture *select_future = cass_session_execute(cb_data->session, cb_data->select_stmt);
     cass_future_set_callback(select_future, select_callback, (void *)cb_data);
-
-    cass_future_free(select_future);
 }
 
 void select_callback(CassFuture *select_future, void *data) {
@@ -163,6 +162,7 @@ void on_select_done(CassFuture *select_future, CallbackData* cb_data) {
 
     cass_iterator_free(res_iter);
     cass_result_free(result);
+    cass_future_free(select_future);
 
     // Continue running concurrent task
     cb_data->cur_pk += 1;
@@ -194,8 +194,6 @@ void run_concurrent_task(CallbackData *cb_data) {
 
         CassFuture *insert_future = cass_session_execute(cb_data->session, cb_data->insert_stmt);
         cass_future_set_callback(insert_future, insert_callback, (void *)cb_data);
-
-        cass_future_free(insert_future);
     }
 
     if (config->workload == Workload::Selects) {
@@ -204,8 +202,6 @@ void run_concurrent_task(CallbackData *cb_data) {
 
         CassFuture *select_future = cass_session_execute(cb_data->session, cb_data->select_stmt);
         cass_future_set_callback(select_future, select_callback, (void *)cb_data);
-
-        cass_future_free(select_future);
     }
 }
 
@@ -222,7 +218,7 @@ int main(int argc, const char *argv[]) {
     config.print();
 
     // Connect to the cluster
-    CassSession* session = connect(config);
+    auto [session, cluster] = connect(config);
 
     // Prepare before the benchmark
     if (!config.dont_prepare) {
@@ -279,15 +275,18 @@ int main(int argc, const char *argv[]) {
         cass_statement_free(cb_data.select_stmt);
     }
 
+    cass_prepared_free(prepared_insert);
+    cass_prepared_free(prepared_select);
+
     auto end_time = std::chrono::high_resolution_clock::now();
     auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
 
     std::cout << "Finished\n\nBenchmark time: " << millis.count() << " ms" << std::endl;
-    
-    fflush(stderr);
 
     thread_pool.join();
+    
     cass_session_free(session);
+    cass_cluster_free(cluster);
     return 0;
 }
 
