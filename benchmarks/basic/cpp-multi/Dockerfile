@@ -20,4 +20,4 @@ COPY source /source
 WORKDIR /source
 
 # Compile the code
-RUN g++ main.cpp -o basic -std=c++11 -I/boost_1_76_0 -lcassandra -lpthread -O3 -flto -Wall -Wshadow
+RUN g++ main.cpp -o basic -std=c++17 -I/boost_1_76_0 -lcassandra -lpthread -O3 -flto -Wall -Wshadow
