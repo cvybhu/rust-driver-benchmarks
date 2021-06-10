@@ -110,6 +110,7 @@ void insert_callback(CassFuture *insert_future, void *data) {
 
 void on_insert_done(CassFuture *insert_future, CallbackData* cb_data) {
     assert_future_ok(insert_future, "Insert failed");
+    cass_future_free(insert_future);
 
     if (cb_data->config->workload == Workload::Inserts) {
         // Ok all done, start next insert
@@ -123,8 +124,6 @@ void on_insert_done(CassFuture *insert_future, CallbackData* cb_data) {
 
     CassFuture *select_future = cass_session_execute(cb_data->session, cb_data->select_stmt);
     cass_future_set_callback(select_future, select_callback, (void *)cb_data);
-
-    cass_future_free(select_future);
 }
 
 void select_callback(CassFuture *select_future, void *data) {
@@ -163,6 +162,7 @@ void on_select_done(CassFuture *select_future, CallbackData* cb_data) {
 
     cass_iterator_free(res_iter);
     cass_result_free(result);
+    cass_future_free(select_future);
 
     // Continue running concurrent task
     cb_data->cur_pk += 1;
@@ -194,8 +194,6 @@ void run_concurrent_task(CallbackData *cb_data) {
 
         CassFuture *insert_future = cass_session_execute(cb_data->session, cb_data->insert_stmt);
         cass_future_set_callback(insert_future, insert_callback, (void *)cb_data);
-
-        cass_future_free(insert_future);
     }
 
     if (config->workload == Workload::Selects) {
@@ -204,8 +202,6 @@ void run_concurrent_task(CallbackData *cb_data) {
 
         CassFuture *select_future = cass_session_execute(cb_data->session, cb_data->select_stmt);
         cass_future_set_callback(select_future, select_callback, (void *)cb_data);
-
-        cass_future_free(select_future);
     }
 }
 
