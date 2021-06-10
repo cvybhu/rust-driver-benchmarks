@@ -39,11 +39,12 @@ CassSession* connect(Config& config) {
     for (auto&& node_address : config.node_addresses) {
         cass_cluster_set_contact_points(cluster, node_address.c_str());
     }
-    
-    if(cass_cluster_set_num_threads_io(cluster, std::thread::hardware_concurrency()) != CASS_OK) {
-        fprintf(stderr, "ERROR: Failed to set io threads number");
-        std::exit(1);
-    }
+
+    // Commented out because c++ driver is buggy with multiple IO threads
+    //if(cass_cluster_set_num_threads_io(cluster, std::thread::hardware_concurrency()) != CASS_OK) {
+    //    fprintf(stderr, "ERROR: Failed to set io threads number");
+    //    std::exit(1);
+    //}
 
     CassSession *session = cass_session_new();
     CassFuture *connect_future = cass_session_connect(session, cluster);

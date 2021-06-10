@@ -66,8 +66,8 @@ void run_simple_query(CassSession *session, const char *query) {
 
     assert_future_ok(result_future, "Simple query failed");
 
-    cass_future_free(result_future);
     cass_statement_free(statement);
+    cass_future_free(result_future);
 }
 
 const CassPrepared *prepare_query(CassSession* session, const char *query) {
