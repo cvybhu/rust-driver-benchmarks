@@ -318,7 +318,6 @@ void prepare_selects_benchmark(CassSession *session, const CassPrepared* prepare
 
     for (auto&& cb_data : callbacks_data) {
         cass_statement_free(cb_data.insert_stmt);
-        cass_statement_free(cb_data.select_stmt);
     }
 
     // Restore previous workload and conccurency
