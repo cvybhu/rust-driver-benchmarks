@@ -24,7 +24,7 @@ void assert_future_ok(CassFuture *future, const char *message) {
     std::exit(1);
 }
 
-CassSession* connect(Config& config) {
+std::pair<CassSession*, CassCluster*> connect(Config& config) {
     CassCluster *cluster = cass_cluster_new();
     if (cass_cluster_set_queue_size_io(cluster, std::max((int64_t)2048, 2 * config.concurrency)) != CASS_OK) {
         fprintf(stderr, "ERROR: Failed to set io queue size\n");
@@ -54,7 +54,7 @@ CassSession* connect(Config& config) {
     cass_future_free(connect_future);
 
     // Cluster gets leaked, it's ok this is just a benchmark
-    return session;
+    return std::make_pair(session, cluster);
 }
 
 void run_simple_query(CassSession *session, const char *query) {
@@ -206,7 +206,7 @@ int main(int argc, const char *argv[]) {
     config.print();
 
     // Connect to the cluster
-    CassSession* session = connect(config);
+    auto [session, cluster] = connect(config);
 
     // Prepare before the benchmark
     if (!config.dont_prepare) {
@@ -261,7 +261,11 @@ int main(int argc, const char *argv[]) {
 
     std::cout << "Finished\n\nBenchmark time: " << millis.count() << " ms\n";
 
+    cass_prepared_free(prepared_insert);
+    cass_prepared_free(prepared_select);
+
     cass_session_free(session);
+    cass_cluster_free(cluster);
     return 0;
 }
 
