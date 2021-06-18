@@ -4,11 +4,6 @@ RUN apt update
 # Install required libraries
 RUN apt install -y wget g++
 
-# Download boost
-# boost 1.65 is available on ubuntu 18.04 but it doesn't have boost::asio::thread_pool
-RUN wget https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.tar.gz
-RUN tar -xzf boost_1_76_0.tar.gz
-
 # Install the C++ driver library
 # TODO - it's buggy for now
 #RUN wget https://github.com/scylladb/cpp-driver/releases/download/2.15.2-1/scylla-cpp-driver_2.15.2-1_amd64.deb

@@ -11,8 +11,6 @@
 #include "config.hpp"
 #include "semaphore.hpp"
 
-#include <boost/asio.hpp>
-
 void assert_future_ok(CassFuture *future, const char *message) {
     if (cass_future_error_code(future) == CASS_OK) {
         return;
@@ -91,7 +89,6 @@ struct CallbackData {
     int64_t cur_pk;
     int64_t end_pk;
 
-    boost::asio::thread_pool* thread_pool;
     Semaphore *finished_semaphore;
 };
 
@@ -103,9 +100,8 @@ void on_select_done(CassFuture *, CallbackData *);
 void insert_callback(CassFuture *insert_future, void *data) {
     CallbackData *cb_data = (CallbackData *)data;
     
-    boost::asio::post(*cb_data->thread_pool, [insert_future, cb_data]() {
-        on_insert_done(insert_future, cb_data);
-    });
+    // Don't spawn this on a thread pool, it breaks performance
+    on_insert_done(insert_future, cb_data);
 }
 
 void on_insert_done(CassFuture *insert_future, CallbackData* cb_data) {
@@ -129,9 +125,8 @@ void on_insert_done(CassFuture *insert_future, CallbackData* cb_data) {
 void select_callback(CassFuture *select_future, void *data) {
     CallbackData *cb_data = (CallbackData *)data;
 
-    boost::asio::post(*cb_data->thread_pool, [select_future, cb_data]() {
-        on_select_done(select_future, cb_data);
-    });
+    // Don't spawn this on a thread pool, it breaks performance
+    on_select_done(select_future, cb_data);
 }
 
 void on_select_done(CassFuture *select_future, CallbackData* cb_data) {
@@ -233,7 +228,6 @@ int main(int argc, const char *argv[]) {
     }
 
     // Start concurrent tasks
-    boost::asio::thread_pool thread_pool(std::thread::hardware_concurrency());
     std::vector<CallbackData> callbacks_data(config.concurrency);
     Semaphore finished_semaphore(config.concurrency);
     std::atomic<int64_t> next_batch_start(0);
@@ -254,15 +248,12 @@ int main(int argc, const char *argv[]) {
             .cur_pk = 0,
             .end_pk = 0,
 
-            .thread_pool = &thread_pool,
             .finished_semaphore = &finished_semaphore
         };
 
         finished_semaphore.acquire_permit();
 
-        boost::asio::post(thread_pool, [callback_data]() {
-            run_concurrent_task(callback_data);
-        });
+        run_concurrent_task(callback_data);
     }
     
     // Wait for concurrent tasks to finish
@@ -282,8 +273,6 @@ int main(int argc, const char *argv[]) {
     auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
 
     std::cout << "Finished\n\nBenchmark time: " << millis.count() << " ms" << std::endl;
-
-    thread_pool.join();
     
     cass_session_free(session);
     cass_cluster_free(cluster);
@@ -314,7 +303,6 @@ void prepare_selects_benchmark(CassSession *session, const CassPrepared* prepare
     }
 
     // Start concurrent tasks
-    boost::asio::thread_pool thread_pool(std::thread::hardware_concurrency());
     std::vector<CallbackData> callbacks_data(config.concurrency);
     Semaphore finished_semaphore(config.concurrency);
     std::atomic<int64_t> next_batch_start(0);
@@ -332,15 +320,12 @@ void prepare_selects_benchmark(CassSession *session, const CassPrepared* prepare
             .cur_pk = 0,
             .end_pk = 0,
 
-            .thread_pool = &thread_pool,
             .finished_semaphore = &finished_semaphore
         };
 
         finished_semaphore.acquire_permit();
 
-        boost::asio::post(thread_pool, [callback_data]() {
-            run_concurrent_task(callback_data);
-        });
+        run_concurrent_task(callback_data);
     }
 
     // Wait for concurrent tasks to finish
