@@ -204,7 +204,7 @@ void prepare_keyspace_and_table(CassSession*);
 void prepare_selects_benchmark(CassSession*, const CassPrepared*, Config&);
 
 int main(int argc, const char *argv[]) {
-    std::cout << "Starting cpp-driver benchmark!\n\n";
+    std::cout << "Starting cpp-multi benchmark!\n\n";
 
     // Parse config    
     Config config(argc, argv);
