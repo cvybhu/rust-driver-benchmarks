@@ -3,7 +3,7 @@ Benchmarks for Scylla Rust Driver
 
 ## Benchmarks
 * Basic - performs basic operations (inserts/selects), max `concurrency` active requests at once
-![](images/bench10000000-inserts.svg)
+![](images/bench10to7-inserts.svg)
 
 ## How to run a benchmark
 Each benchmark is inside a Docker image  
