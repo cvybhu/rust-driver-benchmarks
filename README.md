@@ -7,7 +7,7 @@ Benchmarks for Scylla Rust Driver
 
 ## Drivers:
 * `scylla-rust-driver` - [Scylla Rust driver](https://github.com/scylladb/scylla-rust-driver)
-* `cpp` - [Scylla C++ driver](https://github.com/scylladb/cpp-driver), running on a single thread because multiple threads are [buggy](https://github.com/scylladb/cpp-driver/issues/36)
+* `cpp` - [Scylla C++ driver](https://github.com/scylladb/cpp-driver)
 * `cpp-multi`- [Datastax Cassandra C++ Driver](https://github.com/datastax/cpp-driver), running on multiple threads.
 * `cassandra-cpp` - [Rust bindings for Datastax C++ Driver](https://github.com/datastax/cpp-driver), running on multiple threads using Tokio.
 * `gocql` - A [driver written in Go](https://github.com/gocql/gocql)
