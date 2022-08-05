@@ -3,15 +3,16 @@ FROM ubuntu:18.04
 RUN apt update
 RUN DEBIAN_FRONTEND=noninteractive apt install -y cmake g++ git clang curl
 
-# Building doesn't work with cargo installed via apt, requires a newer version I think
+# Install the latest Rust version
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup.sh
 RUN chmod +x rustup.sh
 RUN ./rustup.sh -y
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 WORKDIR /wrapper
 RUN git clone https://github.com/scylladb/cpp-rust-driver
 WORKDIR cpp-rust-driver
-RUN cd scylla-rust-wrapper && /root/.cargo/bin/cargo build --release
+RUN cd scylla-rust-wrapper && cargo build --release
 
 # Copy benchmark code into the container
 COPY source /source
