@@ -5,4 +5,4 @@ if ! [ -x "$(command -v podman)" ]; then
     CONTAINER_TOOL="docker"
 fi
 
-$CONTAINER_TOOL run --rm -it --network host rust-driver-benchmarks-basic-rust /source/basic "$@"
+$CONTAINER_TOOL build "$@" . -t rust-driver-benchmarks-basic-scylla-cpp-driver
