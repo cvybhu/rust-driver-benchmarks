@@ -27,7 +27,7 @@ If you're using docker executing the commands might require `sudo` or being in t
 
 For example to run the `basic` benchmark using `scylla-rust-driver`
 * Start a local scylla instance: `./scylla.sh`
-* Enter benchmark directory: `cd benchmarks/basic/rust`
+* Enter benchmark directory: `cd benchmarks/basic/scylla-rust-driver`
 * Build the benchmark: `./build.sh`
 * Wait until scylla is ready (Should say something like `listening on 172.17.0.3`)
 * Run the benchmark: `./run.sh`
