@@ -5,4 +5,4 @@ if ! [ -x "$(command -v podman)" ]; then
     CONTAINER_TOOL="docker"
 fi
 
-$CONTAINER_TOOL build "$@" . -t rust-driver-benchmarks-basic-cpp-multi
+$CONTAINER_TOOL build "$@" . -t rust-driver-benchmarks-basic-datastax-cpp-driver

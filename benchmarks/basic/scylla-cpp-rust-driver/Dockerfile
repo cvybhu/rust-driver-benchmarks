@@ -4,7 +4,7 @@ RUN dnf -y update
 RUN dnf -y install cmake g++ git cargo clang
 
 WORKDIR /wrapper
-RUN git clone https://github.com/hackathon-rust-cpp/cpp-rust-driver.git
+RUN git clone https://github.com/scylladb/cpp-rust-driver
 WORKDIR cpp-rust-driver
 RUN cd scylla-rust-wrapper && cargo build --release
 
