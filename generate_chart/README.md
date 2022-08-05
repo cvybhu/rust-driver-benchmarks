@@ -2,7 +2,7 @@
 Chart generator is also in a docker image for convenience
 
 * Enter the `generate_chart` directory
-* Build the docker image: `sudo ./build.sh`
+* Build the docker image: `./build.sh`
 * Enter benchmark results in `config.py`
-* Generate the chart: `sudo ./generate.sh`
+* Generate the chart: `./generate.sh`
 * Generated chart will be in `chart.png`
